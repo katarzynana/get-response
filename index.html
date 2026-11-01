@@ -83,7 +83,7 @@
     display: grid; grid-template-columns: var(--cols); padding: 0 44px 14px;
     font-size: 16px; font-weight: 600; color: #3b4350; letter-spacing: .3px; border-bottom: 1px solid var(--line);
   }
-  .thead span { display: flex; align-items: center; gap: 12px; }
+  .thead > span { display: flex; align-items: center; gap: 12px; }
   .panel-foot { padding: 52px 60px 52px 64px; }
   .assign { display: flex; justify-content: flex-end; padding-right: 26px; margin-bottom: 68px; }
   .assign button { background: none; border: 0; color: var(--link); font-weight: 700; font-size: 21px; padding: 4px; }
@@ -221,7 +221,7 @@
   .fld > label, .fld > .lbl { display: flex; align-items: center; gap: 10px; font-size: 18px; margin-bottom: 12px; }
   .info {
     width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: var(--shadow);
-    font: italic 700 12px Georgia, serif; display: grid; place-items: center;
+    font: italic 700 12px/1 Georgia, serif; display: inline-grid; place-items: center; flex: none; padding-right: 1px;
   }
   .txt {
     width: 100%; background: #fff; border: 1px solid transparent; border-radius: 4px; box-shadow: var(--shadow);
