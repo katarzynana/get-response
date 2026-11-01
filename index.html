@@ -363,7 +363,7 @@
       <div class="assign"><button type="button" onclick="toast('Prototype: Assign tags')">Assign tags</button></div>
       <div class="foot-row">
         <div class="unmatched" style="margin:0">
-          <h3 id="unmatchedTitle">Unmatched columns: 1</h3>
+          <h3 id="unmatchedTitle">Unmatched columns: 6</h3>
           <label class="check"><input type="checkbox" id="skipUnmatched"> Do not import unmatched columns</label>
         </div>
         <button class="btn-import" type="button" id="importBtn">Import</button>
@@ -572,7 +572,8 @@ function renderRows() {
       </div>
     </div>`).join('');
   if (openKey) renderOptions(openKey, '');
-  const unmatched = columns.filter(c => c.state === 'unmatched' || c.state === 'skipped').length;
+  // Every column that is not matched yet counts – including AI suggestions that were not accepted
+  const unmatched = columns.filter(c => c.state !== 'matched').length;
   $('#unmatchedTitle').textContent = `Unmatched columns: ${unmatched}`;
 }
 
