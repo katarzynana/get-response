@@ -1,0 +1,608 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Match columns – prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f5f8;
+    --card: #ffffff;
+    --text: #2b2f36;
+    --muted: #6b7686;
+    --faded: #c2c7cf;
+    --line: #dcdfe4;
+    --blue: #00a2f5;
+    --blue-hover: #0090da;
+    --link: #1aa3ef;
+    --sparkle: #4bb4f3;
+    --green: #3cb96a;
+    --grey-icon: #6c6f75;
+    --shadow: 0 1px 3px rgba(30, 40, 60, .08), 0 2px 8px rgba(30, 40, 60, .06);
+    --shadow-pop: 0 4px 24px rgba(30, 40, 60, .16);
+    --danger: #e5484d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Source Sans 3", "Source Sans Pro", -apple-system, "Segoe UI", sans-serif;
+    font-size: 18px;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; cursor: pointer; }
+  input, select { font: inherit; color: inherit; }
+
+  .page { max-width: 1180px; margin: 0 auto; padding: 32px 16px 120px; }
+
+  /* Banner */
+  .banner {
+    background: var(--card); border-radius: 6px; box-shadow: var(--shadow);
+    display: flex; align-items: center; gap: 16px; padding: 16px 20px 16px 22px;
+    min-height: 76px;
+  }
+  .banner .spark { color: var(--blue); flex: none; }
+  .banner p { margin: 0; flex: 1; font-size: 17px; }
+  .banner b { font-weight: 700; }
+  .banner.done .spark { color: var(--green); }
+  .btn-primary {
+    background: var(--blue); color: #fff; border: 0; border-radius: 999px;
+    padding: 11px 22px; font-weight: 700; font-size: 16px; white-space: nowrap;
+    transition: background .15s;
+  }
+  .btn-primary:hover { background: var(--blue-hover); }
+  .btn-primary:disabled { opacity: .5; cursor: default; }
+
+  /* Rows */
+  .rows { margin-top: 24px; }
+  .row {
+    display: grid; grid-template-columns: 60px 1fr 1fr 512px; align-items: center;
+    padding: 24px 0; border-bottom: 1px solid var(--line); min-height: 150px;
+  }
+  .status { display: flex; justify-content: center; }
+  .status svg { display: block; }
+  .col-name { font-size: 20px; font-weight: 600; color: var(--muted); padding-left: 16px; }
+  .row.is-matched .col-name { color: var(--text); }
+  .samples { font-size: 18px; line-height: 33px; }
+
+  /* Field select */
+  .fselect { position: relative; }
+  .ftrigger {
+    width: 100%; background: var(--card); border: 2px solid transparent; border-radius: 4px;
+    box-shadow: var(--shadow); display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px 12px 18px; min-height: 72px; text-align: left; color: var(--text);
+  }
+  .ftrigger:hover { box-shadow: 0 2px 10px rgba(30, 40, 60, .12); }
+  .fselect.open .ftrigger { border-color: #5ab8f5; }
+  .ftrigger .label { flex: 1; min-width: 0; }
+  .ftrigger .name { font-size: 19px; font-weight: 600; display: block; }
+  .ftrigger .sub { font-size: 15px; color: var(--text); display: block; margin-top: 2px; }
+  .ftrigger .placeholder { color: var(--muted); font-size: 19px; }
+  .ftrigger .skipped { color: var(--muted); font-size: 19px; font-style: italic; }
+  .is-suggested .ftrigger .name { color: var(--link); }
+  .plus {
+    width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%;
+    color: var(--link); flex: none;
+  }
+  .plus:hover { background: #e8f5fe; }
+  .chev { color: var(--text); flex: none; transition: transform .15s; }
+  .fselect.open .chev { transform: rotate(180deg); }
+
+  .menu {
+    position: absolute; top: calc(100% + 18px); left: 0; right: 0; z-index: 20;
+    background: var(--card); border-radius: 8px; box-shadow: var(--shadow-pop);
+    padding: 20px 0 14px; display: none;
+  }
+  .fselect.open .menu { display: block; }
+  .search {
+    margin: 0 22px 12px; position: relative;
+  }
+  .search input {
+    width: 100%; border: 1px solid #e3e6ea; border-radius: 6px; padding: 10px 12px 10px 44px;
+    font-size: 17px; outline: none; box-shadow: inset 0 1px 2px rgba(0,0,0,.06);
+  }
+  .search input:focus { border-color: #5ab8f5; }
+  .search svg { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+  .options { max-height: 230px; overflow-y: auto; }
+  .opt {
+    display: block; width: 100%; border: 0; background: none; text-align: left;
+    padding: 10px 26px; font-size: 19px; font-weight: 600; color: var(--text);
+  }
+  .opt:hover:not(:disabled) { background: #f1f4f8; }
+  .opt:disabled { color: var(--faded); cursor: default; font-weight: 500; }
+  .opt.selected { color: var(--link); }
+  .opt .tag { font-size: 13px; font-weight: 600; color: var(--muted); margin-left: 8px; }
+  .opt:disabled .tag { color: var(--faded); }
+  .empty { padding: 10px 26px; color: var(--muted); font-size: 16px; }
+  .menu-foot { border-top: 1px solid transparent; margin-top: 18px; }
+  .link-btn {
+    display: block; border: 0; background: none; color: var(--link); font-weight: 700;
+    font-size: 19px; padding: 12px 46px; text-align: left; width: 100%;
+  }
+  .link-btn:hover { background: #f1f4f8; }
+
+  /* Footer */
+  .unmatched { margin-top: 36px; }
+  .unmatched h3 { margin: 0 0 22px; font-size: 19px; font-weight: 700; }
+  .check { display: inline-flex; align-items: center; gap: 12px; cursor: pointer; font-size: 18px; }
+  .check input { width: 22px; height: 22px; margin: 0; accent-color: var(--blue); }
+  .actions { display: flex; justify-content: flex-end; gap: 16px; margin-top: 36px; }
+  .btn-text { background: none; border: 0; color: var(--link); font-weight: 700; font-size: 17px; padding: 11px 16px; }
+
+  /* Modal */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(60, 66, 76, .72); z-index: 50;
+    display: none; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 40px 16px;
+  }
+  .overlay.show { display: flex; }
+  .modal {
+    background: var(--bg); border-radius: 14px; width: 100%; max-width: 760px; position: relative;
+    padding: 56px 108px 52px; box-shadow: 0 10px 40px rgba(0,0,0,.25);
+  }
+  .modal .close {
+    position: absolute; top: 26px; right: 30px; background: none; border: 0; padding: 6px; color: var(--text);
+  }
+  .modal h2 { font-size: 34px; font-weight: 900; margin: 0 0 30px; letter-spacing: -.5px; }
+  .fld { margin-bottom: 28px; }
+  .fld > label, .fld > .lbl { display: flex; align-items: center; gap: 10px; font-size: 18px; margin-bottom: 12px; }
+  .info {
+    width: 20px; height: 20px; border-radius: 50%; background: #fff; box-shadow: var(--shadow);
+    font: italic 700 12px Georgia, serif; display: grid; place-items: center;
+  }
+  .txt {
+    width: 100%; background: #fff; border: 1px solid transparent; border-radius: 4px; box-shadow: var(--shadow);
+    padding: 12px 16px; font-size: 18px; outline: none;
+  }
+  .txt:focus { border-color: #5ab8f5; }
+  .txt.err { border-color: var(--danger); }
+  .err-msg { color: var(--danger); font-size: 15px; margin-top: 6px; }
+  .sel-wrap { position: relative; }
+  .sel-wrap select {
+    appearance: none; -webkit-appearance: none; width: 100%; background: #fff; border: 1px solid transparent;
+    border-radius: 4px; box-shadow: var(--shadow); padding: 14px 44px 14px 20px; font-size: 18px; font-weight: 600; outline: none;
+  }
+  .sel-wrap select:focus { border-color: #5ab8f5; }
+  .sel-wrap svg { position: absolute; right: 22px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .card {
+    background: var(--bg); border: 2px solid transparent; border-radius: 12px; padding: 22px 16px 26px;
+    box-shadow: 0 0 0 1px #eceef2, 0 3px 10px rgba(30,40,60,.07); text-align: center; color: #4a5361;
+    min-height: 146px;
+  }
+  .card:hover { box-shadow: 0 0 0 1px #dfe3e8, 0 4px 14px rgba(30,40,60,.12); }
+  .card.active { border-color: var(--blue); }
+  .card .t { font-size: 15px; font-weight: 600; margin-bottom: 14px; display: block; }
+  .card svg { display: block; margin: 0 auto; width: 100%; max-width: 128px; height: auto; }
+  .opt-list { display: flex; flex-direction: column; gap: 10px; }
+  .opt-item { position: relative; }
+  .opt-item .grip { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text); }
+  .opt-item .txt { padding-left: 46px; padding-right: 44px; }
+  .opt-item .rm {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: none; border: 0;
+    color: var(--muted); padding: 6px; border-radius: 50%; opacity: 0; transition: opacity .1s;
+  }
+  .opt-item:hover .rm, .opt-item .rm:focus { opacity: 1; }
+  .add-opt { background: none; border: 0; color: var(--link); font-size: 18px; text-decoration: underline; padding: 0; margin-top: 22px; font-weight: 600; }
+  .radio-row { display: flex; gap: 28px; }
+  .modal .check { align-items: flex-start; font-size: 18px; line-height: 1.5; margin-top: 8px; }
+  .modal .check input { margin-top: 4px; flex: none; }
+  .modal-actions { display: flex; justify-content: flex-end; align-items: center; gap: 28px; margin-top: 44px; }
+  .btn-save {
+    background: #1ec0f7; color: #fff; border: 0; border-radius: 12px; padding: 16px 48px; font-weight: 700; font-size: 18px;
+    box-shadow: 0 4px 10px rgba(0, 162, 245, .25);
+  }
+  .btn-save:hover { background: #0bb2ea; }
+  .hint { color: var(--muted); font-size: 15px; margin-top: 8px; }
+
+  /* Toast */
+  .toast {
+    position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); opacity: 0;
+    background: #2b2f36; color: #fff; padding: 12px 20px; border-radius: 6px; font-size: 16px;
+    transition: all .2s; z-index: 80; pointer-events: none; max-width: calc(100% - 32px);
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (max-width: 1000px) {
+    .row { grid-template-columns: 44px 1fr 1fr; grid-template-rows: auto auto; row-gap: 16px; }
+    .row .fselect { grid-column: 1 / -1; }
+    .modal { padding: 48px 24px 32px; }
+  }
+  @media (max-width: 600px) {
+    .banner { flex-wrap: wrap; }
+    .cards { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .row { grid-template-columns: 40px 1fr; }
+    .samples { grid-column: 2; }
+  }
+</style>
+</head>
+<body>
+<main class="page">
+  <section class="banner" id="banner"></section>
+  <section class="rows" id="rows"></section>
+
+  <section class="unmatched">
+    <h3 id="unmatchedTitle">Unmatched columns: 1</h3>
+    <label class="check"><input type="checkbox" id="skipUnmatched"> Do not import unmatched columns</label>
+  </section>
+
+  <div class="actions">
+    <button class="btn-text" type="button" onclick="toast('Prototype: going back is not part of this flow')">Back</button>
+    <button class="btn-primary" type="button" id="importBtn">Import contacts</button>
+  </div>
+</main>
+
+<div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <form class="modal" id="cfForm" novalidate>
+    <button class="close" type="button" aria-label="Close" data-close>
+      <svg width="26" height="26" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+    </button>
+    <h2 id="modalTitle">Create custom field</h2>
+
+    <div class="fld">
+      <label for="cfName">Custom field name <span class="info" title="Use lowercase letters, digits and underscores">i</span></label>
+      <input class="txt" id="cfName" autocomplete="off">
+      <div class="err-msg" id="nameErr" hidden></div>
+    </div>
+
+    <div class="fld">
+      <label for="cfType">What type of information do you need?</label>
+      <div class="sel-wrap">
+        <select id="cfType">
+          <option value="text">Text</option>
+          <option value="number">Number</option>
+          <option value="date">Date</option>
+          <option value="datetime">Date and time</option>
+          <option value="phone">Phone</option>
+          <option value="url">URL</option>
+          <option value="country">Country</option>
+          <option value="currency">Currency</option>
+          <option value="gender">Gender</option>
+        </select>
+        <svg width="14" height="14" viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+    </div>
+
+    <div class="fld" id="presentFld">
+      <div class="lbl">How to present or collect custom field values?</div>
+      <div class="cards" id="cards"></div>
+    </div>
+
+    <div class="fld" id="numberFld" hidden>
+      <div class="lbl">Number format</div>
+      <div class="radio-row">
+        <label class="check"><input type="radio" name="numfmt" value="integer" checked> Integer</label>
+        <label class="check"><input type="radio" name="numfmt" value="decimal"> Decimal</label>
+      </div>
+    </div>
+
+    <div class="fld" id="optionsFld">
+      <div class="lbl">List of options <span class="info" title="Values imported from the file are prefilled">i</span></div>
+      <div class="opt-list" id="optList"></div>
+      <div class="err-msg" id="optErr" hidden>Add at least one option.</div>
+      <button class="add-opt" type="button" id="addOpt">+ Add another option</button>
+    </div>
+
+    <label class="check"><input type="checkbox" id="cfHidden"> Don't show this custom field to contacts. I need it for operational purposes</label>
+
+    <div class="modal-actions">
+      <button class="btn-text" type="button" data-close>Cancel</button>
+      <button class="btn-save" type="submit">Save</button>
+    </div>
+  </form>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+/* ---------- Icons ---------- */
+const ICON = {
+  sparkle: (size = 18) => `<svg width="${size}" height="${size}" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.5c.5 4.9 2.6 7.9 9 10.5-6.4 2.6-8.5 5.6-9 10.5-.5-4.9-2.6-7.9-9-10.5 6.4-2.6 8.5-5.6 9-10.5z"/></svg>`,
+  matched: `<svg width="28" height="28" viewBox="0 0 28 28" aria-label="Matched"><circle cx="14" cy="14" r="13" fill="#3cb96a"/><path d="M8.5 14.5l3.7 3.6 7.3-7.6" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  suggested: `<svg width="28" height="28" viewBox="0 0 28 28" aria-label="Suggested"><circle cx="14" cy="14" r="13" fill="#4bb4f3"/><path fill="#fff" d="M14 7.3c.3 3 1.6 4.8 5.4 6.4-3.8 1.6-5.1 3.4-5.4 6.4-.3-3-1.6-4.8-5.4-6.4 3.8-1.6 5.1-3.4 5.4-6.4z"/></svg>`,
+  unmatched: `<svg width="28" height="28" viewBox="0 0 28 28" aria-label="Unmatched"><circle cx="14" cy="14" r="13" fill="#6c6f75"/><text x="14" y="19.2" text-anchor="middle" font-family="Source Sans 3, sans-serif" font-weight="700" font-size="15" fill="#fff">?</text></svg>`,
+  skipped: `<svg width="28" height="28" viewBox="0 0 28 28" aria-label="Not imported"><circle cx="14" cy="14" r="13" fill="#c2c7cf"/><path d="M9 14h10" stroke="#fff" stroke-width="2.6" stroke-linecap="round"/></svg>`,
+  plus: `<svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>`,
+  chev: `<svg class="chev" width="12" height="12" viewBox="0 0 12 12"><path d="M2.5 4.5L6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  search: `<svg width="20" height="20" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5L20 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>`,
+  grip: `<svg width="6" height="22" viewBox="0 0 6 22"><circle cx="3" cy="3" r="2.2" fill="currentColor"/><circle cx="3" cy="11" r="2.2" fill="currentColor"/><circle cx="3" cy="19" r="2.2" fill="currentColor"/></svg>`,
+  x: `<svg width="14" height="14" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>`,
+};
+
+/* Presentation cards (only for Text type) */
+const PRESENTATIONS = [
+  { id: 'multi_checkbox', title: 'Multiple answer', choice: true, label: 'Multiple choice',
+    svg: `<svg viewBox="0 0 128 76"><rect x="1" y="1" width="126" height="74" rx="3" fill="#fff" stroke="#8a93a0" stroke-width="1.5"/><rect x="18" y="16" width="12" height="12" rx="1.5" fill="#1ec0f7"/><path d="M20.5 22l2.5 2.5 4.5-5" stroke="#fff" stroke-width="1.8" fill="none"/><rect x="38" y="19" width="52" height="5" rx="2.5" fill="#7d8896"/><rect x="18.5" y="32.5" width="11" height="11" rx="1.5" fill="#fff" stroke="#8a93a0"/><rect x="38" y="35" width="64" height="5" rx="2.5" fill="#7d8896"/><rect x="18" y="48" width="12" height="12" rx="1.5" fill="#1ec0f7"/><path d="M20.5 54l2.5 2.5 4.5-5" stroke="#fff" stroke-width="1.8" fill="none"/><rect x="38" y="51" width="52" height="5" rx="2.5" fill="#7d8896"/></svg>` },
+  { id: 'multi_select', title: 'Multiple answer', choice: true, label: 'Multiple choice',
+    svg: `<svg viewBox="0 0 128 100"><rect x="1" y="1" width="126" height="18" rx="3" fill="#fff" stroke="#8a93a0" stroke-width="1.5"/><rect x="12" y="7.5" width="60" height="5" rx="2.5" fill="#7d8896"/><path d="M106 7.5h8l-4 5z" fill="#1ec0f7"/><rect x="1" y="23" width="126" height="76" rx="3" fill="#fff" stroke="#8a93a0" stroke-width="1.5"/><rect x="14" y="36" width="12" height="12" rx="1.5" fill="#1ec0f7"/><path d="M16.5 42l2.5 2.5 4.5-5" stroke="#fff" stroke-width="1.8" fill="none"/><rect x="34" y="39" width="52" height="5" rx="2.5" fill="#7d8896"/><rect x="14.5" y="54.5" width="11" height="11" rx="1.5" fill="#fff" stroke="#8a93a0"/><rect x="34" y="57" width="64" height="5" rx="2.5" fill="#7d8896"/><rect x="14" y="72" width="12" height="12" rx="1.5" fill="#1ec0f7"/><path d="M16.5 78l2.5 2.5 4.5-5" stroke="#fff" stroke-width="1.8" fill="none"/><rect x="34" y="75" width="52" height="5" rx="2.5" fill="#7d8896"/></svg>` },
+  { id: 'single_radio', title: 'Single answer', choice: true, label: 'Single choice',
+    svg: `<svg viewBox="0 0 128 76"><rect x="1" y="1" width="126" height="74" rx="3" fill="#fff" stroke="#8a93a0" stroke-width="1.5"/><circle cx="24" cy="21.5" r="5.5" fill="#fff" stroke="#8a93a0"/><rect x="38" y="19" width="52" height="5" rx="2.5" fill="#7d8896"/><circle cx="24" cy="37.5" r="5.5" fill="#fff" stroke="#1ec0f7" stroke-width="2"/><circle cx="24" cy="37.5" r="2.6" fill="#1ec0f7"/><rect x="38" y="35" width="64" height="5" rx="2.5" fill="#7d8896"/><circle cx="24" cy="53.5" r="5.5" fill="#fff" stroke="#8a93a0"/><rect x="38" y="51" width="52" height="5" rx="2.5" fill="#7d8896"/></svg>` },
+  { id: 'single_select', title: 'Single answer', choice: true, label: 'Single choice',
+    svg: `<svg viewBox="0 0 128 100"><rect x="1" y="1" width="126" height="18" rx="3" fill="#fff" stroke="#8a93a0" stroke-width="1.5"/><rect x="12" y="7.5" width="52" height="5" rx="2.5" fill="#7d8896"/><path d="M106 7.5h8l-4 5z" fill="#1ec0f7"/><rect x="1" y="23" width="126" height="76" rx="3" fill="#fff" stroke="#8a93a0" stroke-width="1.5"/><rect x="14" y="39" width="52" height="5" rx="2.5" fill="#7d8896"/><rect x="14" y="57" width="64" height="5" rx="2.5" fill="#7d8896"/><rect x="14" y="75" width="52" height="5" rx="2.5" fill="#7d8896"/></svg>` },
+  { id: 'line', title: 'Line of text', choice: false, label: 'Text',
+    svg: `<svg viewBox="0 0 128 76"><rect x="1" y="29" width="126" height="22" rx="3" fill="#fff" stroke="#8a93a0" stroke-width="1.5"/><rect x="14" y="37.5" width="88" height="5" rx="2.5" fill="#7d8896"/></svg>` },
+  { id: 'paragraph', title: 'Paragraph', choice: false, label: 'Paragraph',
+    svg: `<svg viewBox="0 0 128 92"><rect x="1" y="1" width="126" height="90" rx="3" fill="#fff" stroke="#8a93a0" stroke-width="1.5"/><text x="14" y="26" font-family="Georgia, serif" font-weight="700" font-size="22" fill="#7d8896">T</text><path d="M110 85l10-10M115 85l5-5" stroke="#8a93a0" stroke-width="1.5"/></svg>` },
+];
+const TYPE_LABEL = { text: 'Text', number: 'Number', date: 'Date', datetime: 'Date and time', phone: 'Phone', url: 'URL', country: 'Country', currency: 'Currency', gender: 'Gender' };
+
+/* ---------- Data ---------- */
+// Fields already in the account (standard + existing custom fields)
+const fields = [
+  'birthdate', 'city', 'comment', 'company', 'country', 'fax', 'gender', 'home_phone',
+  'mobile_phone', 'phone', 'postal_code', 'ref', 'state', 'street', 'url', 'work_phone',
+].map(name => ({ name, kind: 'standard' }));
+fields.push({ name: 'signup_date', kind: 'custom', type: 'date' });
+
+const columns = [
+  { key: 'signup_date', samples: ['2026-08-24', '2024-12-03', '2024-12-12'], state: 'matched', field: 'signup_date' },
+  { key: 'signup_source', samples: ['formularz_popup', 'landing_page_ebook', 'formularz_popup'], state: 'suggested',
+    suggestion: { name: 'signup_source', type: 'text', presentation: 'single_select', options: ['formularz_popup', 'landing_page_ebook'], sub: 'Single choice · 2 options from file' } },
+  { key: 'consent_marketing', samples: ['tak', 'tak', 'tak'], state: 'suggested',
+    suggestion: { name: 'consent_marketing', type: 'text', presentation: 'single_radio', options: ['tak', 'nie'], sub: 'Single choice · tak / nie' } },
+  { key: 'consent_sms', samples: ['nie', 'tak', 'tak'], state: 'suggested',
+    suggestion: { name: 'consent_sms', type: 'text', presentation: 'single_radio', options: ['tak', 'nie'], sub: 'Single choice · tak / nie' } },
+  { key: 'tags', samples: ['klient', 'ebook_pielegnacja,wlosy'], state: 'unmatched' },
+  { key: 'orders_count', samples: ['1', '0', '0'], state: 'suggested',
+    suggestion: { name: 'orders_count', type: 'number', numfmt: 'integer', sub: 'Number' } },
+  { key: 'total_spent_pln', samples: ['301.43', '0', '0'], state: 'suggested',
+    suggestion: { name: 'total_spent_pln', type: 'number', numfmt: 'decimal', sub: 'Number · decimal' } },
+];
+const TOTAL_SUGGESTED = columns.filter(c => c.state !== 'unmatched').length;
+
+/* ---------- Helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fieldByName = n => fields.find(f => f.name === n);
+const usedBy = n => columns.find(c => c.state === 'matched' && c.field === n);
+let toastTimer;
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+/* ---------- Render ---------- */
+let openKey = null;
+
+function renderBanner() {
+  const left = columns.filter(c => c.state === 'suggested').length;
+  const b = $('#banner');
+  if (left === 0) {
+    b.classList.add('done');
+    b.innerHTML = `<span class="spark">${ICON.sparkle(18)}</span><p><b>All suggestions reviewed.</b> You can still change any match below.</p>`;
+  } else {
+    b.classList.remove('done');
+    b.innerHTML = `<span class="spark">${ICON.sparkle(18)}</span>
+      <p><b>We suggested a match for ${TOTAL_SUGGESTED} of ${columns.length} columns.</b> Review and accept. You also will be able to make changes later.</p>
+      <button class="btn-primary" type="button" id="acceptAll">Accept all suggestions</button>`;
+    $('#acceptAll').onclick = acceptAll;
+  }
+}
+
+function triggerContent(c) {
+  if (c.state === 'matched') return `<span class="label"><span class="name">${esc(c.field)}</span></span>`;
+  if (c.state === 'suggested') return `<span class="label"><span class="name">${esc(c.suggestion.name)}</span><span class="sub">${esc(c.suggestion.sub)}</span></span>
+    <span class="plus" role="button" tabindex="0" data-plus="${c.key}" title="Create “${esc(c.suggestion.name)}” as suggested">${ICON.plus}</span>`;
+  if (c.state === 'skipped') return `<span class="label"><span class="skipped">Don't import</span></span>`;
+  return `<span class="label"><span class="placeholder">Select…</span></span>`;
+}
+
+function renderRows() {
+  $('#rows').innerHTML = columns.map(c => `
+    <div class="row is-${c.state}" data-key="${c.key}">
+      <div class="status">${ICON[c.state]}</div>
+      <div class="col-name">${esc(c.key)}</div>
+      <div class="samples">${c.samples.map(s => `<div>${esc(s)}</div>`).join('')}</div>
+      <div class="fselect${openKey === c.key ? ' open' : ''}">
+        <button class="ftrigger" type="button" data-toggle="${c.key}" aria-haspopup="listbox" aria-expanded="${openKey === c.key}">
+          ${triggerContent(c)}${ICON.chev}
+        </button>
+        <div class="menu">
+          <div class="search">${ICON.search}<input type="text" placeholder="Search..." data-search="${c.key}"></div>
+          <div class="options" data-options="${c.key}"></div>
+          <div class="menu-foot">
+            <button class="link-btn" type="button" data-addcf="${c.key}">Add custom field</button>
+            <button class="link-btn" type="button" data-nomatch="${c.key}">Don't match</button>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+  if (openKey) renderOptions(openKey, '');
+  const unmatched = columns.filter(c => c.state === 'unmatched' || c.state === 'skipped').length;
+  $('#unmatchedTitle').textContent = `Unmatched columns: ${unmatched}`;
+}
+
+function renderOptions(key, q) {
+  const c = columns.find(x => x.key === key);
+  const list = [...fields].sort((a, b) => a.name.localeCompare(b.name))
+    .filter(f => f.name.includes(q.trim().toLowerCase()));
+  const box = document.querySelector(`[data-options="${key}"]`);
+  if (!list.length) { box.innerHTML = `<div class="empty">No fields found</div>`; return; }
+  box.innerHTML = list.map(f => {
+    const owner = usedBy(f.name);
+    const mine = owner && owner.key === key;
+    const disabled = owner && !mine;
+    const tag = f.kind === 'custom' && f.type ? `<span class="tag">${esc(TYPE_LABEL[f.type] || f.type)}</span>` : '';
+    return `<button class="opt${mine ? ' selected' : ''}" type="button" data-pick="${esc(f.name)}" ${disabled ? `disabled title="Already matched to ${esc(owner.key)}"` : ''}>${esc(f.name)}${tag}</button>`;
+  }).join('');
+}
+
+function render() { renderBanner(); renderRows(); }
+
+/* ---------- Actions ---------- */
+function setOpen(key) {
+  openKey = key; renderRows();
+  if (key) document.querySelector(`[data-search="${key}"]`).focus();
+}
+
+function match(c, name) { c.state = 'matched'; c.field = name; }
+
+function createField(def) {
+  fields.push({ name: def.name, kind: 'custom', type: def.type, presentation: def.presentation, options: def.options, numfmt: def.numfmt, hidden: def.hidden });
+}
+
+function acceptSuggestion(c, silent) {
+  const s = c.suggestion;
+  if (fieldByName(s.name)) {
+    if (usedBy(s.name)) { openModal(c); return false; }
+    match(c, s.name);
+  } else {
+    createField(s); match(c, s.name);
+  }
+  if (!silent) toast(`Custom field “${s.name}” created and matched`);
+  return true;
+}
+
+function acceptAll() {
+  let n = 0;
+  columns.filter(c => c.state === 'suggested').forEach(c => { if (acceptSuggestion(c, true)) n++; });
+  openKey = null; render();
+  toast(`${n} custom field${n === 1 ? '' : 's'} created and matched`);
+}
+
+/* ---------- Event delegation for rows ---------- */
+$('#rows').addEventListener('click', e => {
+  const plus = e.target.closest('[data-plus]');
+  if (plus) {
+    e.stopPropagation();
+    const c = columns.find(x => x.key === plus.dataset.plus);
+    if (acceptSuggestion(c)) { openKey = null; render(); }
+    return;
+  }
+  const t = e.target.closest('[data-toggle]');
+  if (t) { setOpen(openKey === t.dataset.toggle ? null : t.dataset.toggle); return; }
+  const pick = e.target.closest('[data-pick]');
+  if (pick && !pick.disabled) {
+    const c = columns.find(x => x.key === openKey);
+    match(c, pick.dataset.pick); openKey = null; render();
+    return;
+  }
+  const add = e.target.closest('[data-addcf]');
+  if (add) { const c = columns.find(x => x.key === add.dataset.addcf); openKey = null; render(); openModal(c); return; }
+  const nm = e.target.closest('[data-nomatch]');
+  if (nm) {
+    const c = columns.find(x => x.key === nm.dataset.nomatch);
+    c.state = 'skipped'; c.field = null; openKey = null; render();
+  }
+});
+$('#rows').addEventListener('keydown', e => {
+  const plus = e.target.closest('[data-plus]');
+  if (plus && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); plus.click(); }
+});
+$('#rows').addEventListener('input', e => {
+  if (e.target.dataset.search) renderOptions(e.target.dataset.search, e.target.value);
+});
+document.addEventListener('click', e => {
+  if (openKey && !e.target.closest('.fselect')) setOpen(null);
+});
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if ($('#overlay').classList.contains('show')) closeModal();
+  else if (openKey) setOpen(null);
+});
+
+$('#importBtn').onclick = () => {
+  const pending = columns.filter(c => c.state === 'suggested').length;
+  const unm = columns.filter(c => c.state === 'unmatched').length;
+  if (pending) return toast(`Review ${pending} suggestion${pending === 1 ? '' : 's'} first (or accept all).`);
+  if (unm && !$('#skipUnmatched').checked) return toast(`Match ${unm} column${unm === 1 ? '' : 's'} or tick “Do not import unmatched columns”.`);
+  toast('Prototype: import started ✔');
+};
+
+/* ---------- Modal ---------- */
+let modalCol = null;
+let presentation = 'line';
+
+function renderCards() {
+  $('#cards').innerHTML = PRESENTATIONS.map(p => `
+    <button type="button" class="card${p.id === presentation ? ' active' : ''}" data-pres="${p.id}" aria-pressed="${p.id === presentation}">
+      <span class="t">${p.title}</span>${p.svg}
+    </button>`).join('');
+}
+function optionRow(v = '') {
+  return `<div class="opt-item"><span class="grip">${ICON.grip}</span><input class="txt" value="${esc(v)}" placeholder="Option"><button type="button" class="rm" aria-label="Remove option">${ICON.x}</button></div>`;
+}
+function syncModalSections() {
+  const type = $('#cfType').value;
+  const isText = type === 'text';
+  $('#presentFld').hidden = !isText;
+  $('#numberFld').hidden = type !== 'number';
+  const pres = PRESENTATIONS.find(p => p.id === presentation);
+  $('#optionsFld').hidden = !(isText && pres.choice);
+  if (!$('#optionsFld').hidden && !$('#optList').children.length) $('#optList').innerHTML = optionRow('');
+}
+
+function uniqueSamples(c) {
+  return [...new Set(c.samples.flatMap(s => s.split(',')).map(s => s.trim()).filter(Boolean))];
+}
+
+function openModal(c) {
+  modalCol = c;
+  const s = c.suggestion;
+  $('#cfName').value = s ? s.name : c.key;
+  $('#cfType').value = s ? s.type : 'text';
+  presentation = s && s.presentation ? s.presentation : 'line';
+  document.querySelector(`input[name="numfmt"][value="${s && s.numfmt === 'decimal' ? 'decimal' : 'integer'}"]`).checked = true;
+  const opts = s && s.options ? s.options : uniqueSamples(c);
+  $('#optList').innerHTML = opts.map(optionRow).join('');
+  $('#cfHidden').checked = false;
+  $('#nameErr').hidden = true; $('#optErr').hidden = true; $('#cfName').classList.remove('err');
+  renderCards(); syncModalSections();
+  $('#overlay').classList.add('show');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => { const n = $('#cfName'); n.focus(); n.select(); }, 0);
+}
+function closeModal() {
+  $('#overlay').classList.remove('show');
+  document.body.style.overflow = '';
+  modalCol = null;
+}
+
+$('#overlay').addEventListener('click', e => {
+  if (e.target === $('#overlay') || e.target.closest('[data-close]')) { closeModal(); return; }
+  const card = e.target.closest('[data-pres]');
+  if (card) { presentation = card.dataset.pres; renderCards(); syncModalSections(); return; }
+  const rm = e.target.closest('.rm');
+  if (rm) { rm.parentElement.remove(); if (!$('#optList').children.length) $('#optList').innerHTML = optionRow(''); }
+});
+$('#cfType').addEventListener('change', syncModalSections);
+$('#addOpt').addEventListener('click', () => {
+  $('#optList').insertAdjacentHTML('beforeend', optionRow(''));
+  $('#optList').lastElementChild.querySelector('input').focus();
+});
+$('#cfName').addEventListener('input', () => { $('#nameErr').hidden = true; $('#cfName').classList.remove('err'); });
+
+$('#cfForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('#cfName').value.trim();
+  let err = '';
+  if (!name) err = 'Enter a custom field name.';
+  else if (!/^[a-z0-9_]+$/.test(name)) err = 'Use only lowercase letters, digits and underscores.';
+  else if (fieldByName(name)) err = `A field named “${name}” already exists. Pick it from the list or choose another name.`;
+  if (err) { $('#nameErr').textContent = err; $('#nameErr').hidden = false; $('#cfName').classList.add('err'); $('#cfName').focus(); return; }
+
+  const type = $('#cfType').value;
+  const def = { name, type, hidden: $('#cfHidden').checked };
+  if (type === 'text') {
+    def.presentation = presentation;
+    if (PRESENTATIONS.find(p => p.id === presentation).choice) {
+      const opts = [...$('#optList').querySelectorAll('input')].map(i => i.value.trim()).filter(Boolean);
+      if (!opts.length) { $('#optErr').hidden = false; return; }
+      def.options = [...new Set(opts)];
+    }
+  }
+  if (type === 'number') def.numfmt = document.querySelector('input[name="numfmt"]:checked').value;
+
+  createField(def);
+  const c = modalCol;
+  match(c, name);
+  closeModal(); render();
+  toast(`Custom field “${name}” created and matched to ${c.key}`);
+});
+
+render();
+</script>
+</body>
+</html>
