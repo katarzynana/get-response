@@ -537,7 +537,7 @@ function renderBanner() {
   } else {
     b.classList.remove('done');
     b.innerHTML = `<span class="spark">${ICON.sparkle(18)}</span>
-      <p><b>We suggested a match for ${TOTAL_SUGGESTED} of ${TOTAL_REVIEWED} columns.</b> Review and accept. You also will be able to make changes later.</p>
+      <p><b>We suggested a match for ${TOTAL_SUGGESTED} of ${TOTAL_REVIEWED} columns.</b> Review and accept. You will also be able to make changes later.</p>
       <button class="btn-primary" type="button" id="acceptAll">Accept all suggestions</button>`;
     $('#acceptAll').onclick = acceptAll;
   }
