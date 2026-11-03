@@ -504,7 +504,9 @@ const columns = [
     suggestion: { name: 'consent_marketing', type: 'text', presentation: 'single_radio', options: ['tak', 'nie'], sub: 'Single choice · tak / nie' } },
   { key: 'consent_sms', samples: ['nie', 'tak', 'tak'], state: 'suggested',
     suggestion: { name: 'consent_sms', type: 'text', presentation: 'single_radio', options: ['tak', 'nie'], sub: 'Single choice · tak / nie' } },
-  { key: 'tags', samples: ['klient', 'ebook_pielegnacja,wlosy'], state: 'unmatched' },
+  { key: 'tags', samples: ['klient', 'ebook_pielegnacja,wlosy'], state: 'unmatched',
+    // No AI suggestion, but "Add custom field" defaults to a multi-select with values split from the file
+    preset: { name: 'tags', type: 'text', presentation: 'multi_select', options: ['klient', 'ebook_pielegnacja', 'wlosy'] } },
   { key: 'orders_count', samples: ['1', '0', '0'], state: 'suggested',
     suggestion: { name: 'orders_count', type: 'number', numfmt: 'integer', sub: 'Number' } },
   { key: 'total_spent_pln', samples: ['301.43', '0', '0'], state: 'suggested',
@@ -703,7 +705,7 @@ function uniqueSamples(c) {
 
 function openModal(c) {
   modalCol = c;
-  const s = c.suggestion;
+  const s = c.suggestion || c.preset;
   $('#cfName').value = s ? s.name : c.key;
   $('#cfType').value = s ? s.type : 'text';
   presentation = s && s.presentation ? s.presentation : 'line';
