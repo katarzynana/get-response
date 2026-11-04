@@ -188,7 +188,8 @@
   .opt .tag { font-size: 13px; font-weight: 600; color: var(--muted); margin-left: 8px; }
   .opt:disabled .tag { color: var(--faded); }
   .empty { padding: 10px 26px; color: var(--muted); font-size: 16px; }
-  .menu-foot { border-top: 1px solid transparent; margin-top: 18px; }
+  .menu .menu-actions { margin: -8px 0 16px; padding-bottom: 12px; border-bottom: 1px solid #e8eaee; }
+  .menu .menu-actions .link-btn { padding: 10px 26px; }
   .link-btn {
     display: block; border: 0; background: none; color: var(--link); font-weight: 700;
     font-size: 19px; padding: 12px 46px; text-align: left; width: 100%;
@@ -564,12 +565,12 @@ function renderRows() {
           ${triggerContent(c)}${ICON.chev}
         </button>
         <div class="menu">
-          <div class="search">${ICON.search}<input type="text" placeholder="Search..." data-search="${c.key}"></div>
-          <div class="options" data-options="${c.key}"></div>
-          <div class="menu-foot">
+          <div class="menu-actions">
             <button class="link-btn" type="button" data-addcf="${c.key}">Add custom field</button>
             <button class="link-btn" type="button" data-nomatch="${c.key}">Don't match</button>
           </div>
+          <div class="search">${ICON.search}<input type="text" placeholder="Search..." data-search="${c.key}"></div>
+          <div class="options" data-options="${c.key}"></div>
         </div>
       </div>
     </div>`).join('');
